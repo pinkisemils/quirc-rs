@@ -1,13 +1,7 @@
 #![feature(plugin)]
 
-// For Docopt macro
-#![plugin(docopt_macros)]
 
-// Make linter fail for every warning
-#![plugin(clippy)]
-#![deny(clippy)]
 
-extern crate docopt;
 extern crate libc;
 extern crate quirc;
 extern crate rscam;
@@ -156,11 +150,11 @@ fn run_loop(parms: &RunParms, cam: &mut Camera, screen: &Surface, qr: &mut Quirc
         }
         frame_count += 1;
     }
-} 
+}
 
 
 fn run(parms: &RunParms) -> io::Result<()> {
-    
+
     let mut cam = try!(rscam::new(&parms.device));
 
     cam.start(&rscam::Config {
@@ -193,59 +187,15 @@ fn run(parms: &RunParms) -> io::Result<()> {
 }
 
 
-docopt!(Args derive Debug, "
-Usage: camera [-vh] [-f] [-d <device>] [-s <WxH>] [-l]
-
-Options:
-    -d, --device <device>   Specify camera device.
-    -f, --frame-rate        Display frame rate.
-    -l, --list              List camera formats and exit.
-    -s, --size <WxH>        Specify video dimensions (WxH).
-    -v, --verbose           Toggle verbose output.
-    -h, --help              Print this help menu.
-");
-
 fn main() {
-    let args: Args = Args::docopt().decode().unwrap_or_else(|e| e.exit());
 
     let mut run_parms = RunParms {
         device: "/dev/video0".to_owned(),
         width: 640,
         height: 480,
-        verbose: args.flag_verbose,
-        show_frame_rate: args.flag_frame_rate,
+        verbose: false,
+        show_frame_rate: true,
     };
-
-    if !args.flag_device.is_empty() {
-        run_parms.device = args.flag_device;
-    }
-
-    if args.flag_list {
-        let camera = rscam::new(&run_parms.device).unwrap();
-
-        for wformat in camera.formats() {
-            let format = wformat.unwrap();
-            println!("{:?}", format);
-            println!("  {:?}", camera.resolutions(&format.format).unwrap());
-        }
-        return;
-    }
-
-    if !args.flag_size.is_empty() {
-        let (w, h) = match parse_size(&args.flag_size) {
-            Ok((w, h)) => (w, h),
-            Err(err) => {
-                println!("Error: {}", err);
-                return;
-            },
-        };
-        run_parms.width = w;
-        run_parms.height = h;
-    }
-    if args.flag_verbose {
-        println!("Camera Device: {}", run_parms.device);
-        println!("Video Size:    {}x{}", run_parms.width, run_parms.height);
-    }
 
     if let Err(err) = run(&run_parms) {
         println!("Error: {}", err);
